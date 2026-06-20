@@ -1,0 +1,131 @@
+# Atrium — the Discord-style forum/community client + its dedicated server.
+#
+# Quick start (SQLite, the default):
+#   cd ../abracadabra-rs && docker build -t abracadabra:latest .   # once
+#   cd -                                                           # back here
+#   cp .env.docker.example .env        # optional — edit secrets / ports / keys
+#   docker compose up -d --build
+#   open http://localhost:3401         # admin login: owner / owner
+#
+# Postgres instead of SQLite:
+#   uncomment ABRA_DATABASE_URL in .env, then:
+#   docker compose --profile postgres up -d --build
+#
+# Atrium is special: its Nuxt server runs a Nitro RPC v1 *service runner* that
+# authenticates as a pre-provisioned, service-role account. That account's
+# public key is registered on the server via the mounted ./docker/abracadabra.toml,
+# and the matching keypair is handed to the app below. Both halves ship with a
+# DEV-ONLY default keypair — regenerate it for anything real (see DOCKER.md).
+
+name: atrium
+
+services:
+  # ── Dedicated forum server ────────────────────────────────────────────────
+  abracadabra:
+    image: abracadabra:latest
+    # build: ../abracadabra-rs
+    restart: unless-stopped
+    ports:
+      - "${ABRA_PORT:-4401}:3000"
+    volumes:
+      - abra-data:/app/data
+      - abra-uploads:/app/uploads
+      # Declares the service-role account whose key the Nitro runner uses.
+      # (Multiple system users can't be expressed via env, so this rides in a
+      # TOML file; every scalar below still overrides it via ABRA_* env.)
+      - ./docker/abracadabra.toml:/app/config.toml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    environment:
+      ABRA_SERVER_BIND: 0.0.0.0:3000
+      ABRA_SERVER_NAME: "Atrium"
+      ABRA_SERVER_DB_PATH: /app/data/abracadabra.db
+      ABRA_SERVER_UPLOAD_DIR: /app/uploads
+      ABRA_SERVER_CORS_ALLOW_ANY: "true"
+      ABRA_DATABASE_URL: "${ABRA_DATABASE_URL:-sqlite:///app/data/abracadabra.db}"
+      # Human admin (second system user, appended to the one in config.toml).
+      ABRA_AUTH_JWT_SECRET: "${ABRA_AUTH_JWT_SECRET:-dev-insecure-change-me-atrium-please-rotate}"
+      ABRA_USERS_SYSTEM_USERNAME: "${ABRA_ADMIN_USER:-owner}"
+      ABRA_USERS_SYSTEM_PASSWORD: "${ABRA_ADMIN_PASSWORD:-owner}"
+      # Forum access model: guests may READ forums (observer); signed-in members
+      # post (editor); only admins/the service runner create top-level forums.
+      ABRA_ACCESS_ANONYMOUS: observer
+      ABRA_ACCESS_AUTHENTICATED: editor
+      ABRA_ACCESS_CREATOR: owner
+      ABRA_ACCESS_ALLOW_USER_TOP_LEVEL: "false"
+      ABRA_USERS_REGISTRATION_ALLOWED: "true"
+      ABRA_USERS_INVITE_ONLY: "false"
+      ABRA_DOCUMENTS_AUTO_CREATE: "true"
+      ABRA_AUTH_MIN_PASSWORD_LENGTH: "8"
+      # Media-heavy: large uploads, all mime types.
+      ABRA_UPLOADS_MAX_FILE_SIZE: "209715200"   # 200 MB — images, video, audio
+      # Community chat: longer posts, notify every member, no forced signing so
+      # guests/observers aren't blocked.
+      ABRA_MESSAGES_MAX_BODY_LENGTH: "8000"
+      ABRA_MESSAGES_FAN_OUT_ALL_MEMBERS: "true"
+      ABRA_MESSAGES_FAN_OUT_MAX: "200"
+      ABRA_MESSAGES_REQUIRE_CLIENT_SIG: "false"
+      ABRA_SNAPSHOTS_ENABLED: "true"
+      ABRA_METRICS_ENABLED: "true"
+      # RPC v1 — the service runner advertises method handlers; forum members call them.
+      ABRA_RPC_ENABLED: "true"
+      ABRA_RPC_MIN_CALLER_ROLE: observer
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Nuxt app (forum client + RPC service runner) ──────────────────────────
+  app:
+    build: .
+    image: atrium:latest
+    restart: unless-stopped
+    depends_on:
+      abracadabra:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-3401}:3000"
+    extra_hosts:
+      - "abra.localhost:host-gateway"
+    environment:
+      NUXT_PUBLIC_ABRACADABRA_URL: "http://abra.localhost:${ABRA_PORT:-4401}"
+      NUXT_PUBLIC_ABRACADABRA_ENTRY_DOC_ID: "${ABRACADABRA_ENTRY_DOC_ID:-00000000-0000-0000-0000-000000000000}"
+      # The schema bundle is generated in a sibling repo that isn't in this
+      # image — disable the external bundle dir (validation falls back to none).
+      NUXT_PUBLIC_ABRACADABRA_SCHEMA_BUNDLE_DIR: "${ATRIUM_SCHEMA_BUNDLE_DIR:-}"
+      # HN-style threading: "flat" (default) or "threaded".
+      NUXT_PUBLIC_ATRIUM_REPLY_MODE: "${ATRIUM_REPLY_MODE:-flat}"
+      # Pre-provisioned RPC v1 service identity (DEV-ONLY default keypair — must
+      # match public_key in ./docker/abracadabra.toml). Regenerate for prod.
+      NUXT_ABRACADABRA_SERVICE_PUBLIC_KEY: "${ATRIUM_SERVICE_PUBLIC_KEY:-xtBLq23ptAfLSZd2rENO3w1QNcT1XjwpBvnZf5hr7BU}"
+      NUXT_ABRACADABRA_SERVICE_PRIVATE_KEY: "${ATRIUM_SERVICE_PRIVATE_KEY:-PZmu23ZsA4GUwW5S5J7BT9GkOfBlA3IjhDeaUtp9eGY}"
+      # Optional TURN relay for voice mesh behind NAT (leave blank to skip).
+      NUXT_PUBLIC_ATRIUM_TURN_URL: "${ATRIUM_TURN_URL:-}"
+      NUXT_PUBLIC_ATRIUM_TURN_USERNAME: "${ATRIUM_TURN_USERNAME:-}"
+      NUXT_PUBLIC_ATRIUM_TURN_CREDENTIAL: "${ATRIUM_TURN_CREDENTIAL:-}"
+
+  # ── Optional Postgres backend (the alternative to SQLite) ─────────────────
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-abra}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-abra}"
+      POSTGRES_DB: "${POSTGRES_DB:-abracadabra}"
+    volumes:
+      - abra-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-abra} -d ${POSTGRES_DB:-abracadabra}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  abra-data:
+  abra-uploads:
+  abra-pg:

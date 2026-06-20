@@ -1,0 +1,27 @@
+# Atrium dedicated server — minimal config.toml.
+#
+# This file exists ONLY to declare the pre-provisioned RPC v1 service account
+# that Atrium's Nitro runner logs in as. Everything else (bind, access, uploads,
+# messages, …) is set via ABRA_* environment variables in docker-compose.yml,
+# which take precedence over anything here (env > config.toml > defaults).
+#
+# System users are created with the `service` role at boot. The human admin
+# (owner) is appended separately from ABRA_USERS_SYSTEM_USERNAME / PASSWORD.
+#
+# ──────────────────────────────────────────────────────────────────────────
+#  DEV-ONLY keypair. The public_key below MUST match the private key in .env
+#  (NUXT_ABRACADABRA_SERVICE_PRIVATE_KEY). Regenerate BOTH for any real deploy:
+#
+#    node -e 'const c=require("crypto");const{publicKey,privateKey}=c.generateKeyPairSync("ed25519");
+#    const b=x=>Buffer.from(x).toString("base64").replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+#    console.log("public ",b(publicKey.export({type:"spki",format:"der"}).subarray(-32)));
+#    console.log("private",b(privateKey.export({type:"pkcs8",format:"der"}).subarray(-32)));'
+#
+#  Put the public key here and in ATRIUM_SERVICE_PUBLIC_KEY; the private key in
+#  ATRIUM_SERVICE_PRIVATE_KEY.
+# ──────────────────────────────────────────────────────────────────────────
+
+[[users.system_users]]
+username = "atrium-service"
+password = "atrium-service-dev-only-rotate-me"
+public_key = "xtBLq23ptAfLSZd2rENO3w1QNcT1XjwpBvnZf5hr7BU"
