@@ -92,7 +92,12 @@ services:
     extra_hosts:
       - "abra.localhost:host-gateway"
     environment:
-      NUXT_PUBLIC_ABRACADABRA_URL: "http://abra.localhost:${ABRA_PORT:-4401}"
+      # Browser-facing backend origin. `abra.localhost` only works for a LOCAL
+      # single-machine `up` (loopback in both browser and container). For a
+      # HOSTED deploy the browser is remote — give the backend a public HTTPS
+      # domain and set ABRA_PUBLIC_URL=https://<backend-domain>, or every request
+      # is blocked as insecure/cross-origin.
+      NUXT_PUBLIC_ABRACADABRA_URL: "${ABRA_PUBLIC_URL:-http://abra.localhost:${ABRA_PORT:-4401}}"
       NUXT_PUBLIC_ABRACADABRA_ENTRY_DOC_ID: "${ABRACADABRA_ENTRY_DOC_ID:-00000000-0000-0000-0000-000000000000}"
       # The schema bundle is generated in a sibling repo that isn't in this
       # image — disable the external bundle dir (validation falls back to none).
