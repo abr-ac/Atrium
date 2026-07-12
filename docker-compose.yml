@@ -22,7 +22,7 @@ name: atrium
 services:
   # ── Dedicated forum server ────────────────────────────────────────────────
   abracadabra:
-    image: abracadabra:latest
+    image: iojanis/abracadabra:latest
     # build: ../abracadabra-rs
     restart: unless-stopped
     ports:
