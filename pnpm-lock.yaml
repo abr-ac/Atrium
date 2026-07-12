@@ -34,8 +34,8 @@ importers:
         specifier: ^2.56.0
         version: 2.56.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
       '@abraca/nuxt':
-        specifier: ^2.55.0
-        version: 2.55.0(a1b0d54e885af3fbb15f04d3667b5fdc)
+        specifier: ^2.56.0
+        version: 2.56.0(a1b0d54e885af3fbb15f04d3667b5fdc)
       '@abraca/schema':
         specifier: ^2.56.0
         version: 2.56.0(yjs@13.6.30)(zod@4.4.3)
@@ -184,8 +184,8 @@ packages:
       y-protocols: 1.0.7
       yjs: 13.6.30
 
-  '@abraca/nuxt@2.55.0':
-    resolution: {integrity: sha512-mrTkq1UbDUe1q/R2iaMfOvvPtKnBA1ufRVJp7SLKwyajKjb7O3s3VyHzLH12mQ+c7CXKYq5+inIYkFWA0+48ZA==}
+  '@abraca/nuxt@2.56.0':
+    resolution: {integrity: sha512-/FW4QfzWCR9eOA4EiJV0xlt8BNQ4dEtsE5SERu3dJGb0Rtt9tjqTC7Wmlr2+SKAUNcvpoKYL2Fq+eorq/YdCdw==}
     peerDependencies:
       '@abraca/convert': ^2.5.0
       '@abraca/dabra': ^2.5.0
@@ -4879,7 +4879,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@abraca/nuxt@2.55.0(a1b0d54e885af3fbb15f04d3667b5fdc)':
+  '@abraca/nuxt@2.56.0(a1b0d54e885af3fbb15f04d3667b5fdc)':
     dependencies:
       '@abraca/convert': 2.3.0(yjs@13.6.30)
       '@abraca/dabra': 2.56.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
