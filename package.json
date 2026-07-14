@@ -11,9 +11,9 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@abraca/dabra": "^2.60.0",
-    "@abraca/nuxt": "^2.60.0",
-    "@abraca/schema": "^2.60.0",
+    "@abraca/dabra": "^2.61.0",
+    "@abraca/nuxt": "^2.61.0",
+    "@abraca/schema": "^2.61.0",
     "@codemirror/autocomplete": "^6.18.0",
     "@codemirror/commands": "^6.7.0",
     "@codemirror/lang-css": "^6.3.1",
