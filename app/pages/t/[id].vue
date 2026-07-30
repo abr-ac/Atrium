@@ -42,7 +42,23 @@ function peerByPubkey(pubkey: string | undefined) {
 }
 
 const threadId = computed(() => route.params.id as string);
+// `tree` is the WRITE handle for this thread's subtree (createChild, updateMeta,
+// deleteEntry). READS go through `nav.allEntries` instead — see below.
 const tree = useChildTree(doc, threadId.value);
+const nav = useAtriumNav();
+
+/**
+ * Read the thread's own entry and its replies from `nav.allEntries`, not from
+ * `tree.entries`.
+ *
+ * Both are the same `doc-tree` Y.Map, but `useAtriumNav()` additionally seeds
+ * itself from `/api/_atrium/tree` (the SSR doc cache) so it has real data during
+ * SSR and on the first client render. `tree.entries` is live-only, i.e. EMPTY on
+ * the server — which is why this page used to render `<h1>Thread</h1>` and
+ * "0 replies" server-side and then swap in the truth on hydration, one Vue
+ * mismatch warning per visit.
+ */
+const treeEntries = computed(() => nav.allEntries.value);
 
 // Mark the thread read whenever we land here or the id changes.
 const reads = useAtriumReads();
@@ -52,14 +68,14 @@ watchEffect(() => {
 });
 
 const self = computed(() =>
-  tree.entries.value.find((e) => e.id === threadId.value),
+  treeEntries.value.find((e) => e.id === threadId.value),
 );
 
 // Replies = all non-reaction, non-other-user-draft descendants under the
 // thread, sorted by order ASC. Own drafts are filtered too — the composer
 // owns its own state so they don't need to render in the feed.
 const replies = computed(() => {
-  return tree.entries.value
+  return treeEntries.value
     .filter((e) => {
       if (e.type === "reaction") return false;
       // Polls render below their attached post, not as top-level replies.
@@ -69,7 +85,7 @@ const replies = computed(() => {
       let cur: { id: string; parentId: string | null } | undefined = e;
       while (cur && cur.parentId) {
         if (cur.parentId === threadId.value) return true;
-        cur = tree.entries.value.find((x) => x.id === cur!.parentId);
+        cur = treeEntries.value.find((x) => x.id === cur!.parentId);
       }
       return false;
     })
@@ -101,7 +117,7 @@ const isPinned = computed(
 
 function ancestorChip(parentId: string | null): string | null {
   if (!parentId || parentId === threadId.value) return null;
-  const parent = tree.entries.value.find((e) => e.id === parentId);
+  const parent = treeEntries.value.find((e) => e.id === parentId);
   if (!parent) return null;
   const text = parent.label ?? "";
   return text.length > 60 ? `${text.slice(0, 57)}…` : text;
@@ -111,21 +127,13 @@ function authorLabel(author: string | undefined, isMe: boolean): string {
   if (isMe) return "you";
   if (!author || author === "me") return "you";
   if (author === "seed") return "seed";
-  return author.slice(0, 8);
+  // Resolve the display name through awareness before falling back to the raw
+  // pubkey prefix. This used to slice the pubkey unconditionally, so a post's
+  // byline read "exvkibJG" even while its author sat in the member panel two
+  // columns away as "Deft-Mage" — peerByPubkey() had the name all along.
+  return peerByPubkey(author)?.name ?? author.slice(0, 8);
 }
 
-function relativeTime(ts: number | undefined): string {
-  if (!ts) return "";
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}d ago`;
-  return `${Math.floor(d / 30)}mo ago`;
-}
 
 interface PostShape {
   id: string;

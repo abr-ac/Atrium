@@ -6,12 +6,30 @@ const { doc } = useAbracadabra();
 
 const forumId = computed(() => route.params.id as string);
 const tree = useChildTree(doc, forumId.value);
+/**
+ * READS go through `nav.allEntries`, not `tree.entries`.
+ *
+ * Both are the same `doc-tree` Y.Map, but `useAtriumNav()` additionally seeds
+ * itself from `/api/_atrium/tree` (the SSR doc cache), so it holds real data
+ * during SSR and on the first client render. `tree.entries` is live-only — EMPTY
+ * on the server — which is why this page server-rendered a placeholder title and
+ * empty lists, then swapped in the truth on hydration (one Vue mismatch warning,
+ * plus a `Hydration completed but contains mismatches` error, per visit).
+ *
+ * `tree` stays as the WRITE handle (createChild / updateMeta / deleteEntry).
+ */
+const nav = useAtriumNav();
+const treeEntries = computed(() => nav.allEntries.value);
+
 
 const self = computed(() =>
-  tree.entries.value.find((e) => e.id === forumId.value),
+  treeEntries.value.find((e) => e.id === forumId.value),
 );
 const categories = computed(() =>
-  tree.childrenOf(null).filter((c) => c.type === "category"),
+  // Seeded entries — `tree.childrenOf(null)` is live-only and SSR-empty.
+  treeEntries.value
+    .filter((c) => c.parentId === forumId.value && c.type === "category")
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
 );
 
 useHead(() => ({

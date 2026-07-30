@@ -4,9 +4,17 @@
 //   - prose variant (narrow measure, comfortable reading)
 //   - no doc-tree drag handle (posts aren't list items)
 //   - suggestion menu off in read-only mode
+//   - NO ancestor breadcrumb, NO sub-page list (see below)
 //
 // docId references a tree entry whose Y.Doc holds the body Y.XmlFragment.
 // AEditor handles loadChild/pin/unpin lifecycle internally.
+//
+// ⚠️ `showBreadcrumb` and `showSubPages` both DEFAULT TO TRUE in @abraca/nuxt.
+// A post is not a page: leaving them on rendered the doc's ancestor chain
+// ("Atrium Demo Forum › General › Introductions › <thread>") *inside every
+// post body*, and a "PAGES" sub-page section inside both composers. Neither
+// means anything for a reply. Keep these off — a post's identity comes from
+// its parent thread's tree entry, which the feed row already shows.
 
 const props = withDefaults(defineProps<{
   docId: string;
@@ -45,6 +53,8 @@ defineExpose({
       :show-toolbar="props.editable"
       :show-suggestion-menu="props.editable"
       :show-drag-handle="false"
+      :show-breadcrumb="false"
+      :show-sub-pages="false"
       variant="doc"
       @ready="$emit('ready')"
     />

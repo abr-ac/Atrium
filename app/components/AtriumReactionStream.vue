@@ -4,7 +4,9 @@
 // Tracks "seen" reaction ids on first paint so we don't replay historical
 // reactions on initial load; only NEW ones trigger animation.
 
-import type { TreeEntry } from "#imports";
+// `TreeEntry` is exported from the module entrypoint, NOT auto-imported into
+// `#imports` — importing it from there fails to typecheck.
+import type { TreeEntry } from "@abraca/nuxt";
 
 const props = defineProps<{
   threadId: string;

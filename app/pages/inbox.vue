@@ -3,6 +3,26 @@
 // grouped time buckets, read state, and a "mark all read" action.
 
 import type { AppNotification, NotificationType } from "@abraca/nuxt";
+import { parseNotifyBody } from "~/utils/notifyLink";
+
+/**
+ * Notification rows, with the runner's deep-link marker split out of the body.
+ *
+ * A server `InboxEntry` has no `link` field, so `atrium-notify` encodes the
+ * thread path INSIDE the body (see `app/utils/notifyLink.ts`). Every consumer
+ * below reads `row.link` / `row.text` off these rows rather than touching
+ * `n.link` / `n.body`, which are always empty / marker-laden respectively.
+ */
+interface NotifyRow {
+  n: AppNotification;
+  text: string;
+  link: string | null;
+}
+
+function toRow(n: AppNotification): NotifyRow {
+  const { text, link } = parseNotifyBody(n.body);
+  return { n, text, link: n.link ?? link };
+}
 
 useHead({ title: "Inbox · Atrium" });
 
@@ -35,7 +55,7 @@ function followedThreadFromLink(link?: string): string | null {
 function matchesFilter(n: AppNotification, f: Filter): boolean {
   if (f === "all") return true;
   if (f === "following") {
-    const id = followedThreadFromLink(n.link);
+    const id = followedThreadFromLink(toRow(n).link ?? undefined);
     return id ? follows.isFollowing(id) : false;
   }
   if (f === "mention") return n.type === "mention";
@@ -58,7 +78,7 @@ const countsByFilter = computed(() => {
     if (n.type === "mention") out.mention += 1;
     if (n.type === "chat" || n.type === "agent") out.chat += 1;
     if (n.type === "system") out.system += 1;
-    const id = followedThreadFromLink(n.link);
+    const id = followedThreadFromLink(toRow(n).link ?? undefined);
     if (id && follows.isFollowing(id)) out.following += 1;
   }
   return out;
@@ -114,24 +134,13 @@ function colorFor(type: NotificationType): "primary" | "neutral" | "success" {
   return "neutral";
 }
 
-function relativeTime(ts: number): string {
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}d ago`;
-  const mo = Math.floor(d / 30);
-  return `${mo}mo ago`;
-}
 
 const router = useRouter();
 
 function activate(n: AppNotification) {
   if (!n.read) markRead(n.id);
-  if (n.link) router.push(n.link);
+  const { link } = toRow(n);
+  if (link) router.push(link);
 }
 </script>
 
@@ -244,8 +253,8 @@ function activate(n: AppNotification) {
                   {{ n.type }}
                 </UBadge>
               </p>
-              <p v-if="n.body" class="atrium-inbox__row-text">
-                {{ n.body }}
+              <p v-if="toRow(n).text" class="atrium-inbox__row-text">
+                {{ toRow(n).text }}
               </p>
             </div>
             <div class="atrium-inbox__row-meta">
@@ -254,7 +263,7 @@ function activate(n: AppNotification) {
               </span>
               <span v-if="!n.read" class="atrium-inbox__row-dot" aria-hidden="true" />
               <UIcon
-                v-if="n.link"
+                v-if="toRow(n).link"
                 name="i-lucide-arrow-up-right"
                 class="size-3.5 text-dimmed"
               />

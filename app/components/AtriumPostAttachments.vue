@@ -3,7 +3,9 @@
 // later) that hang directly under a post entry. Reuses the same useChildTree
 // instance the parent page already created so we don't re-subscribe per post.
 
-import type { TreeEntry } from "#imports";
+// `TreeEntry` is exported from the module entrypoint, NOT auto-imported into
+// `#imports` — importing it from there fails to typecheck.
+import type { TreeEntry } from "@abraca/nuxt";
 
 const props = defineProps<{
   postId: string;

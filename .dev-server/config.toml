@@ -1,0 +1,108 @@
+# Atrium dev-test server config.
+#
+# The ACCESS MODEL below deliberately MIRRORS `docker-compose.yml` — a dev
+# server that is kinder than the deploy is not a dev server (janis-io lost six
+# deploy-only bugs to exactly that divergence). Only the LIMITS (rate caps,
+# connection caps, secrets, CORS) are dev-flavoured.
+#
+# Launch with cwd = this directory (the server reads ./config.toml):
+#
+#   cd .dev-server && ../../abracadabra-rs/target/debug/abracadabra
+#
+# The app then needs ABRACADABRA_URL=http://localhost:4401 (see .env).
+
+[server]
+bind = "127.0.0.1:4401"
+name = "Atrium"
+db_path = "db/atrium.db"
+upload_dir = "./uploads"
+flush_interval_ms = 100
+unload_unused_after_s = 300
+# `cors_allow_any` only applies when `cors_origins` is EMPTY — a non-empty list
+# wins and becomes the ONLY allowed set.
+cors_origins = []
+cors_allow_any = true
+# Dev-only: the Nitro runners open a socket per doc AND the browser holds its
+# own per-doc sockets; the stock 64 saturates mid-session (429 per_ip_cap).
+max_ws_connections_per_ip = 512
+
+[auth]
+jwt_secret = "dev-insecure-change-me-atrium-please-rotate"
+enable_crypto_auth = true
+enable_jwt_auth = true
+min_password_length = 8
+
+[users]
+# Guests are SOFT IDENTITIES: the SDK mints a keypair in the browser and
+# registers it, so a visitor is `authenticated` and lands on [access].
+# authenticated below. Closing this pushes every visitor onto the anonymous
+# path (observer), which can never write.
+registration_allowed = true
+invite_only = false
+
+# The human admin. Matches ABRA_ADMIN_USER / ABRA_ADMIN_PASSWORD in the compose.
+[[users.system_users]]
+username = "owner"
+password = "owner"
+
+# The RPC v1 service account the Nitro runner authenticates as. Public key must
+# equal ATRIUM_SERVICE_PUBLIC_KEY / NUXT_ABRACADABRA_SERVICE_PUBLIC_KEY.
+# Same DEV-ONLY keypair as docker/abracadabra.toml.
+[[users.system_users]]
+username = "atrium-service"
+password = "atrium-service-dev-only-rotate-me"
+public_key = "xtBLq23ptAfLSZd2rENO3w1QNcT1XjwpBvnZf5hr7BU"
+
+[access]
+# Mirrors docker-compose.yml exactly: guests READ forums, members POST, only
+# admins / the service runner create top-level forums.
+anonymous = "observer"
+anonymous_default = "observer"
+authenticated = "editor"
+creator = "owner"
+allow_user_top_level = false
+
+[documents]
+# NOTE: the TOML key is `auto_create` (the env var is ABRA_DOCUMENTS_AUTO_CREATE).
+# `auto_create_documents` is NOT a real key — serde ignores it and the default
+# (false) silently stands.
+auto_create = true
+default_encryption = "none"
+
+[uploads]
+max_file_size = 209715200        # 200 MB — media-heavy forum
+
+[database]
+read_pool_size = 16
+write_pool_size = 4
+busy_timeout_ms = 5000
+
+[chat]
+max_message_length = 8000
+
+[messages]
+max_body_length = 8000
+fan_out_all_members = true
+fan_out_max = 200
+require_client_sig = false
+
+[snapshots]
+enabled = true
+snapshot_interval_s = 60
+max_snapshots = 50
+
+[rpc]
+enabled = true
+min_caller_role = "observer"
+
+[extensions.metrics]
+
+[extensions.rate_limit]
+# Generous for local dev; production keeps the defaults.
+request_limit = 1000000
+request_window_secs = 60
+connect_limit = 5000
+connect_window_secs = 60
+update_limit = 100000
+awareness_limit = 100000
+stateless_limit = 100000

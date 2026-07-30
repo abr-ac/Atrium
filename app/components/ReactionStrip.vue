@@ -6,7 +6,9 @@
 // runner can denormalise to meta.reactionCounts on the post in Phase 4 if
 // the per-post entry list grows expensive to scan.
 
-import type { TreeEntry } from "#imports";
+// `TreeEntry` is exported from the module entrypoint, NOT auto-imported into
+// `#imports` — importing it from there fails to typecheck.
+import type { TreeEntry } from "@abraca/nuxt";
 
 const props = defineProps<{
   postId: string;

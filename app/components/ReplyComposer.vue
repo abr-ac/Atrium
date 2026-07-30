@@ -106,7 +106,7 @@ async function onDrop(ev: DragEvent) {
   ev.preventDefault();
   dragCounter = 0;
   dropActive.value = false;
-  if (!draftId.value) startDraft();
+  if (!draftId.value) await startDraft();
   await nextTick();
   const files = Array.from(ev.dataTransfer?.files ?? []);
   for (const f of files) {
@@ -114,10 +114,13 @@ async function onDrop(ev: DragEvent) {
   }
 }
 
-function startDraft() {
+async function startDraft() {
   if (draftId.value) return;
   const parentId = props.replyToId ?? props.threadId;
-  const id = tree.createChild(parentId, "(draft)", "reply");
+  // createChildRegistered: see NewThreadComposer — awaiting the REST
+  // registration is what keeps the reply parented to its thread server-side
+  // instead of being auto-adopted by the root (and 409ing).
+  const id = await tree.createChildRegistered(parentId, "(draft)", "reply");
   tree.updateMeta(id, {
     draft: true,
     author: publicKeyB64.value,
@@ -142,34 +145,34 @@ function discardDraft() {
   editorReady.value = false;
 }
 
-function summarizeBody(): string {
-  // Read the AEditor's Y.Doc body via the provider and derive a first-line
-  // summary. AEditor stores TipTap content in a Y.XmlFragment on the child
-  // doc; we pull `textContent` for a plain-text summary.
+function bodyText(): string {
+  // Prefer the live editor — it's mounted whenever publish() can run, and
+  // editorBodyText() skips AEditor's documentHeader/documentMeta nodes.
+  //
+  // The old implementation stringified the whole Y.XmlFragment, which INCLUDES
+  // the documentHeader (= the doc title, "(draft)" at this point). That is why
+  // every posted reply was labelled "(draft) <the actual text>".
+  const fromEditor = editorBodyText(editorRef.value?.editor);
+  if (fromEditor) return fromEditor;
+
+  // Fallback for the (rare) case where the editor isn't mounted: read the
+  // child doc's fragment directly, still skipping the chrome nodes.
   const id = draftId.value;
-  if (!id || !doc.value) return "(reply)";
-  const provider = (useAbracadabra().provider as { value?: any }).value;
+  if (!id) return "";
   try {
-    const child = provider?.getChild?.(id);
+    const prov = provider.value as any;
+    const child = prov?.getChild?.(id);
     const childDoc = child?.document ?? child?.doc;
-    if (childDoc) {
-      const xml = childDoc.getXmlFragment("default") as any;
-      const text = xml?.toString?.() ?? "";
-      // Strip XML tags; first 120 chars of the first line.
-      const plain = text
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-      const firstLine = plain.split("\n")[0] ?? "";
-      return firstLine.length > 120
-        ? `${firstLine.slice(0, 117)}…`
-        : firstLine || "(reply)";
-    }
+    if (childDoc) return xmlFragmentBodyText(childDoc.getXmlFragment("default"));
   }
   catch (e) {
-    if (import.meta.dev) console.warn("[ReplyComposer] failed to summarize body:", e);
+    if (import.meta.dev) console.warn("[ReplyComposer] failed to read body:", e);
   }
-  return "(reply)";
+  return "";
+}
+
+function summarizeBody(): string {
+  return firstLineSummary(bodyText(), 120, "(reply)");
 }
 
 const onlinePeers = useAtriumOnlinePeers();
@@ -178,18 +181,25 @@ async function publish() {
   if (!draftId.value || posting.value) return;
   posting.value = true;
   try {
-    const summary = summarizeBody();
+    const body = bodyText();
+    const summary = firstLineSummary(body, 120, "(reply)");
     // When the body contains @here, snapshot the currently-online peers
     // (minus me) so the notify runner can fan-out to that exact set
-    // instead of every author seen in the forum.
+    // instead of every author seen in the forum. Scan the WHOLE body — the
+    // old code scanned only the first-line summary, so an @here further down
+    // the post was silently dropped.
     const me = publicKeyB64.value;
-    const hereTargets = /@here\b/.test(summary)
+    const hereTargets = /@here\b/.test(body)
       ? onlinePeers.snapshot().filter((p) => p !== me)
       : undefined;
     tree.renameEntry(draftId.value, summary);
     tree.updateMeta(draftId.value, {
       draft: false,
       hasRichBody: true,
+      // Plain-text mirror of the body. The notify runner uses it for the
+      // notification snippet + its mention scan; without it the runner fell
+      // back to `entry.label`, which is only the first line.
+      body: body.slice(0, 2000),
       ...(hereTargets ? { notifyHere: hereTargets } : {}),
     } as Record<string, unknown>);
     draftId.value = null;
@@ -250,7 +260,7 @@ function openMention() {
       <button
         type="button"
         class="atrium-composer__cta"
-        @click="startDraft"
+        @click="() => startDraft()"
       >
         <UIcon name="i-lucide-message-square-plus" class="size-4 text-primary" />
         <span>Reply to this thread…</span>

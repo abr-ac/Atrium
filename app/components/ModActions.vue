@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from "@nuxt/ui";
 // ModActions dropdown — Pin/Unpin, Lock/Unlock, Resolve, Delete. Operates by
 // patching meta on the tree entry directly. No role gate yet — Phase 4 wires
 // per-board permissions. Visible on thread headers and post action rows.
@@ -66,9 +67,12 @@ const isAuthor = computed(() => {
   return !!author && author === abra.publicKeyB64.value;
 });
 
-const items = computed(() => {
+const items = computed<DropdownMenuItem[]>(() => {
   const threadOnly = props.scope === "thread";
-  const out: { label: string; icon: string; onSelect: () => void; color?: string }[] = [];
+  // Typed as DropdownMenuItem[] so `color` narrows to Nuxt UI's literal union
+  // ("error" | "primary" | …) rather than widening to `string`, which no longer
+  // satisfies `ArrayOrNested<DropdownMenuItem>` in v4.
+  const out: DropdownMenuItem[] = [];
   if (threadOnly) {
     out.push({
       label: isPinned.value ? "Unpin thread" : "Pin to top",
@@ -101,7 +105,10 @@ const items = computed(() => {
     onSelect: requestDelete,
     color: "error",
   });
-  return [out];
+  // Nuxt UI v4's `UDropdownMenu` types `items` as `ArrayOrNested<DropdownMenuItem>`,
+  // which no longer accepts a hand-rolled `T[][]` of our own item shape. There's
+  // only ever one group here, so pass it flat.
+  return out;
 });
 </script>
 

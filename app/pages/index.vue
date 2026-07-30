@@ -7,6 +7,7 @@
 useHead({ title: "Atrium" });
 
 const nav = useAtriumNav();
+const commandPalette = useAtriumCommandPalette();
 const { status, publicKeyB64 } = useAbracadabra();
 
 const primaryForum = computed(() => nav.forums.value[0] ?? null);
@@ -49,18 +50,6 @@ const recent = computed<RecentEntry[]>(() => {
     .slice(0, 6);
 });
 
-function relativeTime(ts: number): string {
-  if (!ts) return "";
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}d`;
-  return `${Math.floor(d / 30)}mo`;
-}
 
 const forumStats = computed(() => {
   if (!primaryForum.value) return { boards: 0, threads: 0, posts: 0 };
@@ -131,7 +120,7 @@ const forumStats = computed(() => {
               variant="ghost"
               size="lg"
               :trailing-icon="'i-lucide-keyboard'"
-              @click="$el.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))"
+              @click="commandPalette.show()"
             >
               Search · ⌘K
             </UButton>
@@ -185,7 +174,7 @@ const forumStats = computed(() => {
                   <span class="atrium-landing__recent-dot">·</span>
                   <span>{{ r.replyCount }} {{ r.replyCount === 1 ? 'reply' : 'replies' }}</span>
                   <span class="atrium-landing__recent-dot">·</span>
-                  <span>{{ relativeTime(r.lastActivity) }} ago</span>
+                  <span>{{ relativeTime(r.lastActivity) }}</span>
                 </p>
               </div>
               <UIcon

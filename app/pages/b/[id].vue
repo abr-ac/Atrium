@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Shared rel(), keeping this page's em-dash empty state.
+const rel = (ts: number | undefined) => relativeTime(ts, "—");
 // Board detail — list of threads, sorted with pinned first then by recency.
 
 const route = useRoute();
@@ -6,14 +8,29 @@ const { doc } = useAbracadabra();
 
 const boardId = computed(() => route.params.id as string);
 const tree = useChildTree(doc, boardId.value);
+/**
+ * READS go through `nav.allEntries`, not `tree.entries`.
+ *
+ * Both are the same `doc-tree` Y.Map, but `useAtriumNav()` additionally seeds
+ * itself from `/api/_atrium/tree` (the SSR doc cache), so it holds real data
+ * during SSR and on the first client render. `tree.entries` is live-only — EMPTY
+ * on the server — which is why this page server-rendered a placeholder title and
+ * empty lists, then swapped in the truth on hydration (one Vue mismatch warning,
+ * plus a `Hydration completed but contains mismatches` error, per visit).
+ *
+ * `tree` stays as the WRITE handle (createChild / updateMeta / deleteEntry).
+ */
+const nav = useAtriumNav();
+const treeEntries = computed(() => nav.allEntries.value);
+
 
 const self = computed(() =>
-  tree.entries.value.find((e) => e.id === boardId.value),
+  treeEntries.value.find((e) => e.id === boardId.value),
 );
 const parentCategory = computed(() => {
   const pid = self.value?.parentId;
   if (!pid) return null;
-  return tree.entries.value.find((e) => e.id === pid) ?? null;
+  return treeEntries.value.find((e) => e.id === pid) ?? null;
 });
 
 interface ThreadRow {
@@ -30,8 +47,12 @@ interface ThreadRow {
 const { publicKeyB64 } = useAbracadabra();
 
 const threads = computed<ThreadRow[]>(() => {
-  const raw = tree
-    .childrenOf(null)
+  // Seeded entries, not `tree.childrenOf(null)` — the latter is live-only, so
+  // on the server this list came back EMPTY and the template took its
+  // "No threads yet" branch, then swapped to <ul> on hydration.
+  const raw = treeEntries.value
+    .filter((t) => t.parentId === boardId.value)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .filter((t) => {
       if (t.type !== "thread") return false;
       // Hide other authors' drafts; drafts are author-only until published.
@@ -45,7 +66,7 @@ const threads = computed<ThreadRow[]>(() => {
   return raw
     .map((t) => {
       const meta = (t.meta ?? {}) as Record<string, unknown>;
-      const replies = tree.entries.value.filter((e) => {
+      const replies = treeEntries.value.filter((e) => {
         if (e.parentId !== t.id) return false;
         if (e.type === "reaction") return false;
         const m = (e.meta ?? {}) as Record<string, unknown>;
@@ -75,19 +96,6 @@ const threads = computed<ThreadRow[]>(() => {
     });
 });
 
-function relativeTime(ts: number): string {
-  if (!ts) return "—";
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}d ago`;
-  const mo = Math.floor(d / 30);
-  return `${mo}mo ago`;
-}
 
 const router = useRouter();
 const toast = useToast();
@@ -103,7 +111,7 @@ function contextItemsFor(thread: ThreadRow) {
   const isPinned = thread.priority >= 4;
   const isResolved = thread.status === "resolved";
   const isLocked = thread.priority >= 0
-    && Boolean((tree.entries.value.find((e) => e.id === thread.id)?.meta as any)?.locked);
+    && Boolean((treeEntries.value.find((e) => e.id === thread.id)?.meta as any)?.locked);
   return [
     [
       {
@@ -252,7 +260,7 @@ useHead(() => ({
               {{ thread.replyCount }}
             </UBadge>
             <span class="text-xs text-dimmed">
-              {{ relativeTime(thread.lastActivity) }}
+              {{ rel(thread.lastActivity) }}
             </span>
           </div>
           </NuxtLink>

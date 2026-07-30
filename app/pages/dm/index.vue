@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Shared rel(), keeping this page's em-dash empty state.
+const rel = (ts: number | undefined) => relativeTime(ts, "—");
 // Direct messages list — every channel keyed `dm:<sortedPair>` involving
 // the current user surfaces here with last message preview + unread count.
 // Clicking a row opens the global DM modal (provided by the layout).
@@ -39,7 +41,10 @@ const rows = computed<DMRow[]>(() => {
       color: peer?.user?.color ?? "#888",
       online: !!peer && !peer.idle,
       lastMessage: ch.lastMessage?.content ?? "(no messages yet)",
-      lastTimestamp: ch.lastMessage?.timestamp ?? 0,
+      // `ChatMessage.createdAt` — the field was named `timestamp` in an older
+      // SDK. Reading the dead name silently gave every row `0`, so the DM list
+      // showed no times and never sorted by recency.
+      lastTimestamp: ch.lastMessage?.createdAt ?? 0,
       unreadCount: ch.unreadCount ?? 0,
     });
   }
@@ -77,18 +82,6 @@ function onPeerSelected(peer: { pubkey: string; name: string; color: string | nu
   });
 }
 
-function relativeTime(ts: number): string {
-  if (!ts) return "—";
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h`;
-  const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}d`;
-  return `${Math.floor(d / 30)}mo`;
-}
 
 function trimMessage(msg: string, max = 90): string {
   const clean = msg.replace(/\s+/g, " ").trim();
@@ -159,7 +152,7 @@ function trimMessage(msg: string, max = 90): string {
               <p class="atrium-dm-list__row-title">
                 <span class="truncate" :style="{ color: r.color }">{{ r.name }}</span>
                 <span class="atrium-dm-list__row-time">
-                  {{ relativeTime(r.lastTimestamp) }}
+                  {{ rel(r.lastTimestamp) }}
                 </span>
               </p>
               <p class="atrium-dm-list__row-snippet">

@@ -583,7 +583,7 @@ useHead(() => ({
                   </button>
                 </template>
                 <UBadge color="neutral" variant="subtle" size="sm">
-                  {{ nav.threadsForBoard(board.id).length }} threads
+                  {{ plural(nav.threadsForBoard(board.id).length, "thread") }}
                 </UBadge>
                 <UButton
                   color="error"

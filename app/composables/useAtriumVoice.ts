@@ -309,11 +309,20 @@ export function useAtriumVoice() {
 
   function startLevelLoop() {
     if (levelTimer) return;
-    const bufs = new Map<number, Float32Array>();
-    const ensureBuf = (key: number, size: number): Float32Array => {
+    const bufs = new Map<number, Float32Array<ArrayBuffer>>();
+    // Return type must be the ArrayBuffer-backed variant: the bare
+    // `Float32Array` alias widens to `Float32Array<ArrayBufferLike>`, which
+    // `AnalyserNode.getFloatTimeDomainData` (declared over
+    // `Float32Array<ArrayBuffer>`) rejects since TS made typed arrays generic
+    // over their backing buffer.
+    const ensureBuf = (key: number, size: number): Float32Array<ArrayBuffer> => {
       let b = bufs.get(key);
       if (!b || b.length !== size) {
-        b = new Float32Array(size);
+        // `new ArrayBuffer(...)` explicitly: since TS 5.7 typed arrays are
+        // generic over their backing buffer, and the bare `new Float32Array(n)`
+        // overload infers `ArrayBufferLike` — which `getFloatTimeDomainData`
+        // (declared over `Float32Array<ArrayBuffer>`) rejects.
+        b = new Float32Array(new ArrayBuffer(size * Float32Array.BYTES_PER_ELEMENT));
         bufs.set(key, b);
       }
       return b;

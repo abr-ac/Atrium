@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Shared rel(), keeping this page's em-dash empty state.
+const rel = (ts: number | undefined) => relativeTime(ts, "—");
 // Drafts surface — every tree entry I authored with meta.draft=true.
 // Walks the full atrium tree (via useAtriumNav) and lists drafts grouped
 // by board/thread context so I can jump back to wherever I left off.
@@ -84,18 +86,6 @@ const groups = computed(() => ({
   other: drafts.value.filter((d) => d.type === "other"),
 }));
 
-function relativeTime(ts: number): string {
-  if (!ts) return "—";
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}d ago`;
-  return `${Math.floor(d / 30)}mo ago`;
-}
 
 function jumpTo(draft: DraftRow) {
   router.push(draft.threadHref);
@@ -169,7 +159,7 @@ useHead({ title: "Drafts · Atrium" });
                       </NuxtLink>
                     </span>
                     <span class="atrium-drafts__row-dot" v-if="d.parentHref">·</span>
-                    <span>{{ relativeTime(d.updatedAt) }}</span>
+                    <span>{{ rel(d.updatedAt) }}</span>
                   </p>
                 </button>
                 <UButton
@@ -207,7 +197,7 @@ useHead({ title: "Drafts · Atrium" });
                     {{ d.body }}
                   </p>
                   <p class="atrium-drafts__row-meta">
-                    <span>{{ relativeTime(d.updatedAt) }}</span>
+                    <span>{{ rel(d.updatedAt) }}</span>
                   </p>
                 </button>
                 <UButton
@@ -233,7 +223,7 @@ useHead({ title: "Drafts · Atrium" });
               <div class="atrium-drafts__row">
                 <button type="button" class="atrium-drafts__row-main" @click="jumpTo(d)">
                   <p class="atrium-drafts__row-title">{{ d.label }}</p>
-                  <p class="atrium-drafts__row-meta">{{ relativeTime(d.updatedAt) }}</p>
+                  <p class="atrium-drafts__row-meta">{{ rel(d.updatedAt) }}</p>
                 </button>
                 <UButton
                   color="neutral"

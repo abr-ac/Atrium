@@ -1,5 +1,15 @@
-import { z } from "zod";
+// `z` comes from @abraca/schema, NOT from "zod".
+//
+// @abraca/schema is consumed from the sibling abracadabra-ts repo over a
+// node_modules symlink, so `import { z } from "zod"` here resolves a DIFFERENT
+// physical zod copy than the one the package's declarations were compiled
+// against. TypeScript follows realpaths and `ZodType` is invariant in its
+// internals, so nothing from our copy satisfies a parameter typed by theirs —
+// `ymap(z.number())` failed with "Argument of type 'ZodNumber' is not assignable
+// to parameter of type 'AnyZodType'" on code that is entirely correct. Pinning
+// versions via pnpm.overrides does not help (the directories stay distinct).
 import {
+  z,
   defineDocType,
   defineSchema,
   ref,
@@ -87,7 +97,10 @@ export const ReadState = defineDocType({
   version: 1,
   meta: UniversalMeta,
   // Per-user shadow doc. body = ymap of threadId → lastReadAt (number).
-  body: ymap({ entries: ytext() }),
+  // `ymap(value)` takes the VALUE schema — it describes a `Y.Map<value>`. The
+  // old `ymap({ entries: ytext() })` passed a plain object where a ZodType was
+  // expected (and described the wrong shape besides).
+  body: ymap(z.number()),
 });
 
 // Poll — embedded inside a post body via `![[pollId]]`. The poll itself is

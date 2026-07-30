@@ -77,9 +77,12 @@ const connectionTone = computed<"primary" | "warning" | "neutral">(() => {
 // Auth state — anon users get sign-in / create-account CTAs; signed-in users
 // get account-switcher access.
 const isAnonymous = computed(() => {
-  // The SDK considers a user "claimed" once they have a username + password
-  // attached. Lacking that, surface the claim path.
-  return !abra.username?.value;
+  // "Claimed" = the guest keypair has been bound to a username + password.
+  // `AbracadabraState.username` no longer exists (the display name is
+  // `userName`, which every guest has, so reading it here made *everyone* look
+  // claimed). `identityState` is the SDK's explicit state machine and the
+  // documented replacement for the deprecated `isClaimed` boolean.
+  return abra.identityState?.value !== "claimed";
 });
 const accountSwitcherOpen = ref(false);
 const loginOpen = ref(false);

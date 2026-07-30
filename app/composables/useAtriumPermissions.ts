@@ -14,7 +14,9 @@
 // `atrium-revert` runner uses the same fields to filter writes server-side,
 // so client gating + server enforcement agree.
 
-import type { TreeEntry } from "#imports";
+// `TreeEntry` is exported from the module entrypoint, NOT auto-imported into
+// `#imports` — importing it from there fails to typecheck.
+import type { TreeEntry } from "@abraca/nuxt";
 
 const ADMIN_ROLES = new Set(["Service", "Admin", "Owner"]);
 

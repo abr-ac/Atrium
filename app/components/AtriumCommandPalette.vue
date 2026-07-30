@@ -5,7 +5,9 @@
 // NuxtLink-equivalent navigateTo() because UCommandPalette renders inside a
 // modal where <NuxtLink> doesn't get the hover treatment.
 
-import type { TreeEntry } from "#imports";
+// `TreeEntry` is exported from the module entrypoint, NOT auto-imported into
+// `#imports` — importing it from there fails to typecheck.
+import type { TreeEntry } from "@abraca/nuxt";
 
 const open = defineModel<boolean>("open", { default: false });
 

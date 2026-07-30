@@ -57,3 +57,9 @@ test/e2e/.e2e-env.json
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Local dev backend (see CLAUDE.md). The config.toml IS checked in — it mirrors
+# the compose access posture and is the contract for `pnpm dev`. The database,
+# uploads and WAL files are local state.
+.dev-server/db
+.dev-server/uploads

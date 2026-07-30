@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Shared rel(), keeping this page's em-dash empty state.
+const rel = (ts: number | undefined) => relativeTime(ts, "—");
 // User profile page. Shows the avatar + name + activity + the user's
 // editable profile (bio, status, links). Self mode adds an Edit button
 // that opens the inline editor; everyone sees the same rendered values.
@@ -76,6 +78,11 @@ const contributions = computed(() => {
   for (const e of entries) {
     const meta = (e.meta ?? {}) as Record<string, unknown>;
     if (meta.author !== pubkey.value) continue;
+    // A draft is a real child doc that exists from the moment its composer
+    // opens — it is not a contribution. Counting drafts here put an abandoned
+    // "(draft)" row in "Recent threads opened" and inflated the stat tiles
+    // (and karma) for everyone, including on other people's profiles.
+    if (meta.draft === true) continue;
     if (e.type === "reaction") {
       reactionCount += 1;
       continue;
@@ -126,18 +133,6 @@ const recentReplies = computed(() =>
   contributions.value.repliesPosted.slice(0, 8),
 );
 
-function relativeTime(ts: number): string {
-  if (!ts) return "—";
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}d ago`;
-  return `${Math.floor(d / 30)}mo ago`;
-}
 
 function trimBody(body: string, max = 140): string {
   const clean = body.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
@@ -360,7 +355,7 @@ function saveProfile() {
                 <p class="atrium-user__row-meta">
                   <span v-if="t.boardLabel">#{{ t.boardLabel }}</span>
                   <span class="atrium-user__row-dot">·</span>
-                  <span>{{ relativeTime(t.createdAt) }}</span>
+                  <span>{{ rel(t.createdAt) }}</span>
                 </p>
               </div>
               <UIcon name="i-lucide-arrow-up-right" class="size-3.5 text-dimmed" />
@@ -387,7 +382,7 @@ function saveProfile() {
                 <p class="atrium-user__row-meta">
                   <span class="truncate">in {{ r.threadLabel }}</span>
                   <span class="atrium-user__row-dot">·</span>
-                  <span>{{ relativeTime(r.createdAt) }}</span>
+                  <span>{{ rel(r.createdAt) }}</span>
                 </p>
               </div>
               <UIcon name="i-lucide-arrow-up-right" class="size-3.5 text-dimmed" />

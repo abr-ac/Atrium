@@ -16,6 +16,22 @@ export default defineNuxtConfig({
 
   compatibilityDate: "latest",
 
+  nitro: {
+    // `server/api/og/[id].get.ts` optional-imports satori + @resvg/resvg-js to
+    // upgrade share cards from SVG to PNG, guarded by `.catch(() => null)` with a
+    // working SVG fallback. They are deliberately NOT dependencies (both pull
+    // native binaries), so declare them external — Nitro must never try to bundle
+    // them, and if someone does install them the runtime import resolves.
+    //
+    // NOTE this does not silence the build-time
+    // "…could not be resolved – treating it as an external dependency" warning:
+    // that comes from Vite's scan of the Nitro entry, before this applies. The
+    // warning is expected and harmless.
+    externals: {
+      external: ["satori", "@resvg/resvg-js"],
+    },
+  },
+
   runtimeConfig: {
     public: {
       abracadabraUrl: process.env.ABRACADABRA_URL ?? "http://localhost:4000",

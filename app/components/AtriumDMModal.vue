@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // AtriumDMModal — minimal direct-message UModal between current user and a
-// target pubkey. Uses the SDK's buildDmChannelId helper to derive a stable
-// channel id from the sorted pair, then drives <AChatPanel> via useChatChannel.
+// target pubkey. buildDmChannelId() derives the DM doc id from the sorted
+// pubkey pair; ensureDmChannel() creates the backing doc on first open.
 
 const props = defineProps<{
   open: boolean;
@@ -24,8 +24,25 @@ const channel = computed(() =>
   channelId.value ? useChatChannel(channelId.value) : null,
 );
 
+// The DM's backing document must EXIST (with Editor rows for both participants)
+// before the first send, or `messages:send` is refused with
+// `not found: document <id> not found` and the message silently vanishes.
+// Creation runs on our Nitro route as the service account — a member can't
+// create a top-level doc under this forum's posture. See useAtriumDmChannel.
+const dmChannel = useAtriumDmChannel();
+watch([() => publicKeyB64.value, () => props.recipientPubkey], async ([me, other]) => {
+  if (!me || !other || me === other) return;
+  await dmChannel.ensure(other);
+}, { immediate: true });
+
+
 const messages = computed(() => channel.value?.messages.value ?? []);
-const typingUsers = computed(() => channel.value?.typingUsers.value ?? []);
+// `useChatChannel().typingUsers` yields NAMES (string[]) while <AChatPanel>
+// takes `TypingUser[]` ({ name, avatarStyle? }). Adapt here rather than
+// passing strings, which rendered blank names in the typing indicator.
+const typingUsers = computed(() =>
+  (channel.value?.typingUsers.value ?? []).map((name: string) => ({ name })),
+);
 
 function send(content: string) {
   channel.value?.send(content);
@@ -39,11 +56,12 @@ const recipientIsOnline = computed(() => {
 });
 
 // Map peer pubkeys to display names for the panel's mention/byline rendering.
+// <AChatPanel> takes `ChatMentionUser[]` = { id, name, isAgent? }. The old
+// `{ id, label, color }` shape left every mention suggestion unnamed.
 const mentionUsers = computed(() => {
   return peers.value.map((p) => ({
     id: p.user?.publicKey ?? String(p.clientId),
-    label: p.user?.name ?? "guest",
-    color: p.user?.color,
+    name: p.user?.name ?? "guest",
   }));
 });
 

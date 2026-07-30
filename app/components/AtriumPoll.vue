@@ -6,7 +6,9 @@
 //
 // Composes the same primitives as ReactionStrip — no new server work.
 
-import type { TreeEntry } from "#imports";
+// `TreeEntry` is exported from the module entrypoint, NOT auto-imported into
+// `#imports` — importing it from there fails to typecheck.
+import type { TreeEntry } from "@abraca/nuxt";
 
 const props = defineProps<{
   pollId: string;

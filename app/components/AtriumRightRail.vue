@@ -11,6 +11,20 @@ const { peers, currentUser } = useAwarenessPeers();
 const voice = useAtriumVoice();
 const toast = useToast();
 
+/**
+ * A member is a peer that publishes an identity.
+ *
+ * Atrium's own Nitro process holds a WebSocket on the root doc as its RPC /
+ * runner identity and never sets an awareness `user` field — so it surfaced in
+ * the member panel as an online member called "guest" (the `?? "guest"` fallback
+ * below), inflating "ONLINE — n" by one on every single page. Service sockets
+ * are infrastructure, not members.
+ */
+function isMemberPeer(p: { user?: { publicKey?: string } }): boolean {
+  const pk = p.user?.publicKey;
+  return !!pk && pk !== "seed";
+}
+
 const activeForum = computed(() => nav.trail.value.forum);
 const activeThread = computed(() => nav.trail.value.thread);
 const activeVoiceRoomId = computed(() => voice.myRoomId.value);
@@ -47,6 +61,8 @@ function roleFor(pubkey: string | null): { badge: string; icon: string; level: n
   for (const e of entries) {
     const meta = (e.meta ?? {}) as Record<string, unknown>;
     if (meta.author !== pubkey) continue;
+    // Drafts aren't contributions — see useAtriumReputation.
+    if (meta.draft === true) continue;
     if (e.type === "reaction") continue;
     if (e.type === "thread") threads += 1;
     else replies += 1;
@@ -87,6 +103,7 @@ const members = computed<MemberRow[]>(() => {
     });
   }
   for (const p of peers.value) {
+    if (!isMemberPeer(p)) continue;
     const pv = (p as any)["atrium-voice"];
     const role = roleFor(p.user?.publicKey ?? null);
     out.push({

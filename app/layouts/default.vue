@@ -34,7 +34,9 @@ const breadcrumb = computed(() => {
   return [items[0]!, { label: "…", to: undefined }, ...items.slice(-2)];
 });
 
-const searchOpen = ref(false);
+// Shared so any page (e.g. the landing hero) can open the palette — see
+// useAtriumCommandPalette().
+const { open: searchOpen } = useAtriumCommandPalette();
 
 const activeForum = computed(() => nav.trail.value.forum);
 const activeBoard = computed(() => nav.trail.value.board);

@@ -47,7 +47,12 @@ async function expand() {
   expanded.value = true;
   // Pre-create the draft entry so AEditor mounts immediately. The thread
   // list filters drafts from non-author views.
-  const id = tree.createChild(props.boardId, "(draft)", "thread");
+  // createChildRegistered (not createChild): awaits the REST registration so the
+  // `documents` row lands with parent_id = the board BEFORE anything opens the
+  // subdoc over the websocket. With the sync variant the WS handshake wins and
+  // auto-parents the doc to the ROOT, the POST 409s, and the permission cascade
+  // never gets an ancestor chain for the thread.
+  const id = await tree.createChildRegistered(props.boardId, "(draft)", "thread");
   tree.updateMeta(id, {
     draft: true,
     author: publicKeyB64.value,
@@ -80,8 +85,16 @@ async function publish() {
   try {
     // Snapshot online peers when the title or body mentions @here so the
     // notify runner can fan-out to the live set instead of every author.
+    //
+    // The body MUST come from editorBodyText(): the old
+    // `doc.textBetween(0, 1000)` threw for every body under 1000 chars
+    // (`to` past the doc size → "reading 'nodeSize'"), and since this sat in
+    // a try/finally with no catch it rejected publish() — thread creation was
+    // dead. editorBodyText() also drops the documentHeader so the title isn't
+    // double-counted in the @here scan.
     const me = publicKeyB64.value;
-    const text = `${title.value} ${editorRef.value?.editor?.state?.doc?.textBetween?.(0, 1000) ?? ""}`;
+    const body = editorBodyText(editorRef.value?.editor);
+    const text = `${title.value} ${body}`;
     const hereTargets = /@here\b/.test(text)
       ? onlinePeers.snapshot().filter((p) => p !== me)
       : undefined;
@@ -90,6 +103,8 @@ async function publish() {
       draft: false,
       hasRichBody: true,
       tags: parseTags(tagsInput.value),
+      // Plain-text mirror for the notify runner's snippet + mention scan.
+      body: body.slice(0, 2000),
       ...(hereTargets ? { notifyHere: hereTargets } : {}),
     } as Record<string, unknown>);
     const createdId = draftId.value;

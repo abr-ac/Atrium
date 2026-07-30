@@ -6,27 +6,45 @@ const { doc } = useAbracadabra();
 
 const catId = computed(() => route.params.id as string);
 const tree = useChildTree(doc, catId.value);
+/**
+ * READS go through `nav.allEntries`, not `tree.entries`.
+ *
+ * Both are the same `doc-tree` Y.Map, but `useAtriumNav()` additionally seeds
+ * itself from `/api/_atrium/tree` (the SSR doc cache), so it holds real data
+ * during SSR and on the first client render. `tree.entries` is live-only — EMPTY
+ * on the server — which is why this page server-rendered a placeholder title and
+ * empty lists, then swapped in the truth on hydration (one Vue mismatch warning,
+ * plus a `Hydration completed but contains mismatches` error, per visit).
+ *
+ * `tree` stays as the WRITE handle (createChild / updateMeta / deleteEntry).
+ */
+const nav = useAtriumNav();
+const treeEntries = computed(() => nav.allEntries.value);
+
 
 const self = computed(() =>
-  tree.entries.value.find((e) => e.id === catId.value),
+  treeEntries.value.find((e) => e.id === catId.value),
 );
 const parentForum = computed(() => {
   const parentId = self.value?.parentId;
   if (!parentId) return null;
-  return tree.entries.value.find((e) => e.id === parentId) ?? null;
+  return treeEntries.value.find((e) => e.id === parentId) ?? null;
 });
 const boards = computed(() =>
-  tree.childrenOf(null).filter((b) => b.type === "board"),
+  // Seeded entries — `tree.childrenOf(null)` is live-only and SSR-empty.
+  treeEntries.value
+    .filter((b) => b.parentId === catId.value && b.type === "board")
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
 );
 
 // Per-board denormalised stats. Until atrium:tally-replies runner lands these
 // are computed client-side. Cheap because the whole tree is in-memory.
 function statsFor(boardId: string) {
-  const threads = tree.entries.value.filter((e) => e.parentId === boardId && e.type === "thread");
+  const threads = treeEntries.value.filter((e) => e.parentId === boardId && e.type === "thread");
   let replyCount = 0;
   let lastActivity = 0;
   for (const t of threads) {
-    const replies = tree.entries.value.filter((e) => e.parentId === t.id);
+    const replies = treeEntries.value.filter((e) => e.parentId === t.id);
     replyCount += replies.length;
     const tLast = Math.max(t.updatedAt ?? 0, ...replies.map((r) => r.updatedAt ?? 0));
     if (tLast > lastActivity) lastActivity = tLast;

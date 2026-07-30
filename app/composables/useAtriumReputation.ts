@@ -59,6 +59,9 @@ export function useAtriumReputation(pubkey: MaybeRefOrGetter<string | null | und
     for (const e of entries) {
       const meta = (e.meta ?? {}) as Record<string, unknown>;
       if (meta.author !== key) continue;
+      // Drafts are real child docs from the moment a composer opens; they are
+      // not contributions and must never reach karma or a stat tile.
+      if (meta.draft === true) continue;
       if (e.type === "reaction") continue;
       if (e.type === "thread") {
         threads += 1;
