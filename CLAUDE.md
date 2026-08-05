@@ -54,8 +54,12 @@ cd .dev-server && ../../abracadabra-rs/target/debug/abracadabra
   authenticate as, keyed to the DEV-ONLY keypair in `.env`).
 - `GET /` returns 404 — normal, it's an API/WS server.
 - Gotcha: the `[documents]` TOML key is **`auto_create`**, not
-  `auto_create_documents`. The latter is silently ignored and the default
-  (false) stands.
+  `auto_create_documents`. The latter used to be ignored in silence and the
+  default (false) stood — this repo found that independently, and it cost
+  `jun-is` and `janis-io` a great deal more before it propagated. Server ≥ 3.1
+  names any key that binds to nothing at boot (with a "did you mean", and
+  migration text for renamed keys), and `[server].strict_config = true` makes
+  it refuse to start instead.
 - Don't `pkill -f abracadabra-atrium` — it matches the backend's `.dev-server`
   path and takes the backend down with the app.
 
