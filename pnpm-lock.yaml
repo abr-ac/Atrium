@@ -36,20 +36,20 @@ importers:
   .:
     dependencies:
       '@abraca/convert':
-        specifier: ^2.95.0
-        version: 2.95.0(yjs@13.6.30)
+        specifier: ^2.96.0
+        version: 2.96.0(yjs@13.6.30)
       '@abraca/dabra':
-        specifier: ^2.95.0
-        version: 2.95.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
+        specifier: ^2.96.0
+        version: 2.96.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
       '@abraca/nuxt':
-        specifier: ^2.95.0
-        version: 2.95.0(420857298d5138e66b16779b7a3f7ab7)
+        specifier: ^2.96.0
+        version: 2.96.0(56bdebed4285647019907ae2418c443d)
       '@abraca/plugin':
-        specifier: ^2.95.0
-        version: 2.95.0
+        specifier: ^2.96.0
+        version: 2.96.0
       '@abraca/schema':
-        specifier: ^2.95.0
-        version: 2.95.0(yjs@13.6.30)(zod@4.4.3)
+        specifier: ^2.96.0
+        version: 2.96.0(yjs@13.6.30)(zod@4.4.3)
       '@codemirror/autocomplete':
         specifier: ^6.18.0
         version: 6.20.2
@@ -180,8 +180,8 @@ importers:
 
 packages:
 
-  '@abraca/convert@2.95.0':
-    resolution: {integrity: sha512-ceMT7XiVzYCujhdAcJ3oZFvkoqYyH89HiLp/jtwqLYH42SfKK5AeT/68pFfBioYb1aRldZQXjE+5y7JbA3y22A==}
+  '@abraca/convert@2.96.0':
+    resolution: {integrity: sha512-mS/c3gcf9o/2Ej0+yA/n3dNZ95Bgri94jzGJmd7d/CRW6VY7d8YJsf/eFcPid6S7BaeKADVCkm6lXJwKQ/tvTA==}
     peerDependencies:
       '@tauri-apps/plugin-fs': '*'
       yjs: 13.6.30
@@ -189,14 +189,14 @@ packages:
       '@tauri-apps/plugin-fs':
         optional: true
 
-  '@abraca/dabra@2.95.0':
-    resolution: {integrity: sha512-0Yzn2FweAlgImQkmgM9CWciUQzLpu80GkBYsKRH6YJozCsNL02RzENqdehb7qnGh7p1ZdmTDyGrKiC0UrLuBSw==}
+  '@abraca/dabra@2.96.0':
+    resolution: {integrity: sha512-24Jt4dhlAOY+yWDszxvtb8vK4SQ9lPiBoBXk1P+tnT93op5EyLLTIbyy7gBaylqxe81Rm8YbpZAXskOMSaRQuw==}
     peerDependencies:
       y-protocols: 1.0.7
       yjs: 13.6.30
 
-  '@abraca/nuxt@2.95.0':
-    resolution: {integrity: sha512-fxTGasa36g/ajDOYoedmKLUveugupUIfQUrqvbtA4xxNFkqZCdlAY/UsecsnckLv3eERzzq5KFGeWpyeDrpDyg==}
+  '@abraca/nuxt@2.96.0':
+    resolution: {integrity: sha512-S9657pDPMxdaTiVPsMJ/sxE0iczhKeMmG2SHca4+gFRd5qbEnXYN2zixRp9ZJ7GEO6vlg3SviVbnIoeY13+E3Q==}
     peerDependencies:
       '@abraca/convert': ^2.5.0
       '@abraca/dabra': ^2.5.0
@@ -309,11 +309,11 @@ packages:
       y-codemirror.next:
         optional: true
 
-  '@abraca/plugin@2.95.0':
-    resolution: {integrity: sha512-2fpy5X2knOto/4QvZdRmlqzii3eadgr3QV6dNS2ttNyB/XGw0pvXTYlUTX5aybz1cCK3X6zbLjODqtIMsk5/Kw==}
+  '@abraca/plugin@2.96.0':
+    resolution: {integrity: sha512-/DOYGaRFzoAU7g8YNCQcuucqJr/23DgMy6mUWGSsDsgQrnbECPG4TlZANcYMWFbyHFR3IGPCbp8Jzqr58VTTBA==}
 
-  '@abraca/schema@2.95.0':
-    resolution: {integrity: sha512-T+SLG5ntIYCtZSCrF+s617whrfGawK9auDh2UTzAddaMyqcihu+skM3GlhyR2+hYUK9MEU0CUJ/gBoK8xBp8WQ==}
+  '@abraca/schema@2.96.0':
+    resolution: {integrity: sha512-xG/Wv8ztONei27BYo9Hu+l3HRKiXRqdmrALjEpQ3wExr5ckB4pdWoe2SPP9r0YOUkhilDRVm4mGQJNpzJEy6pw==}
     peerDependencies:
       yjs: 13.6.30
       zod: ^4.0.0
@@ -4915,11 +4915,11 @@ packages:
 
 snapshots:
 
-  '@abraca/convert@2.95.0(yjs@13.6.30)':
+  '@abraca/convert@2.96.0(yjs@13.6.30)':
     dependencies:
       yjs: 13.6.30
 
-  '@abraca/dabra@2.95.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)':
+  '@abraca/dabra@2.96.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)':
     dependencies:
       '@lifeomic/attempt': 3.1.0
       '@noble/curves': 2.2.0
@@ -4934,11 +4934,11 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@abraca/nuxt@2.95.0(420857298d5138e66b16779b7a3f7ab7)':
+  '@abraca/nuxt@2.96.0(56bdebed4285647019907ae2418c443d)':
     dependencies:
-      '@abraca/convert': 2.95.0(yjs@13.6.30)
-      '@abraca/dabra': 2.95.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
-      '@abraca/plugin': 2.95.0
+      '@abraca/convert': 2.96.0(yjs@13.6.30)
+      '@abraca/dabra': 2.96.0(y-protocols@1.0.7(yjs@13.6.30))(yjs@13.6.30)
+      '@abraca/plugin': 2.96.0
       '@noble/ed25519': 3.1.0
       '@noble/hashes': 2.2.0
       '@nuxt/kit': 4.4.6(magicast@0.5.2)
@@ -4974,7 +4974,7 @@ snapshots:
       vue: 3.5.34(typescript@6.0.3)
       yjs: 13.6.30
     optionalDependencies:
-      '@abraca/schema': 2.95.0(yjs@13.6.30)(zod@4.4.3)
+      '@abraca/schema': 2.96.0(yjs@13.6.30)(zod@4.4.3)
       '@codemirror/autocomplete': 6.20.2
       '@codemirror/commands': 6.10.3
       '@codemirror/lang-css': 6.3.1
@@ -4997,9 +4997,9 @@ snapshots:
       - magicast
       - supports-color
 
-  '@abraca/plugin@2.95.0': {}
+  '@abraca/plugin@2.96.0': {}
 
-  '@abraca/schema@2.95.0(yjs@13.6.30)(zod@4.4.3)':
+  '@abraca/schema@2.96.0(yjs@13.6.30)(zod@4.4.3)':
     dependencies:
       yjs: 13.6.30
       zod: 4.4.3
